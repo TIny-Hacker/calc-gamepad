@@ -47,6 +47,7 @@ static usb_hid_descriptor_report_t report = {
     },
     .usage = {
         .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+        // .item = 0x04, // Joystick
         .item = 0x05, // Gamepad
     },
     .collection1 = {
@@ -216,6 +217,14 @@ static const usb_standard_descriptors_t standard = {
     .strings = strings,
 };
 
+static usb_hid_gamepad_data_t state = {
+    .leftX = 0,
+    .leftY = 0,
+    .rightX = 0,
+    .rightY = 0,
+    .buttons = 0,
+};
+
 static usb_error_t handleUsbEvent(usb_event_t event, void *eventData, usb_callback_data_t *callbackData) {
     usb_error_t error = USB_SUCCESS;
 
@@ -242,26 +251,81 @@ static usb_error_t handleUsbEvent(usb_event_t event, void *eventData, usb_callba
     return error;
 }
 
+static bool updateJoystickAxis(kb_lkey_t dec, kb_lkey_t inc, int8_t *value) {
+    if (kb_IsDown(dec)) {
+        if (*value >= 0) {
+            *value = -127;
+            return true;
+        }
+    } else if (kb_IsDown(inc)) {
+        if (*value <= 0) {
+            *value = 127;
+            return true;
+        }
+    } else if (*value) {
+        *value = 0;
+        return true;
+    }
+
+    return false;
+}
+
+static bool updateButton(kb_lkey_t key, uint8_t button) {
+    if (kb_IsDown(key) && !bit(state.buttons, button)) {
+        toggle(state.buttons, button);
+        return true;
+    } else if (!kb_IsDown(key) && bit(state.buttons, button)) {
+        toggle(state.buttons, button);
+        return true;
+    }
+
+    return false;
+}
+
 int main(void) {
     usb_error_t error;
+    bool needUpdate = false;
+
+    gfx_Begin();
+    gfx_ZeroScreen();
 
     if ((error = usb_Init(handleUsbEvent, NULL, &standard, USB_DEFAULT_INIT_FLAGS)) == USB_SUCCESS) {
         while (kb_AnyKey());
         while (!kb_IsDown(kb_KeyClear)) {
             kb_Scan();
             usb_HandleEvents();
+
+            if (needUpdate && USB_SUCCESS == usb_ScheduleInterruptTransfer(usb_GetDeviceEndpoint(usb_FindDevice(NULL, NULL, USB_SKIP_HUBS), USB_DEVICE_TO_HOST | 1), &state, sizeof(state), NULL, NULL)) {
+                needUpdate = false;
+            } else {
+                // Left joystick
+                needUpdate |= updateJoystickAxis(kb_Key4, kb_Key6, &(state.leftX));
+                needUpdate |= updateJoystickAxis(kb_Key8, kb_Key2, &(state.leftY));
+
+                // Right joystick
+                needUpdate |= updateJoystickAxis(kb_KeyLeft, kb_KeyRight, &(state.rightX));
+                needUpdate |= updateJoystickAxis(kb_KeyUp, kb_KeyDown, &(state.rightY));
+
+                // Standard(?) buttons
+                needUpdate |= updateButton(kb_Key2nd, BUTTON_1);
+                needUpdate |= updateButton(kb_KeyAlpha, BUTTON_2);
+                needUpdate |= updateButton(kb_KeyGraphVar, BUTTON_3);
+                needUpdate |= updateButton(kb_KeyMode, BUTTON_4);
+
+                // Trigger buttons
+                needUpdate |= updateButton(kb_KeyYequ, BUTTON_5);
+                needUpdate |= updateButton(kb_KeyWindow, BUTTON_7);
+                needUpdate |= updateButton(kb_KeyGraph, BUTTON_6);
+                needUpdate |= updateButton(kb_KeyTrace, BUTTON_8);
+
+                // Other
+                needUpdate |= updateButton(kb_KeyDel, BUTTON_9);
+                needUpdate |= updateButton(kb_KeyStat, BUTTON_10);
+            }
         }
     }
 
     usb_Cleanup();
-
-    gfx_Begin();
-    gfx_PrintStringXY("Error code: ", 0, 0);
-    gfx_PrintUInt(error, 2);
-
-    while (kb_AnyKey());
-    while (!kb_AnyKey());
-
     gfx_End();
 
     return 0;

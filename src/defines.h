@@ -18,6 +18,18 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Check a specified bit in a number.
+ * 
+ */
+#define bit(n, bit) ((n) & (1U << (bit)))
+
+/**
+ * @brief Toggles a specified bit in a number.
+ * 
+ */
+#define toggle(n, bit) (n ^= (1U << bit))
+
 #define DEFAULT_LANGID 0x0409
 
 #define USB_HID_REPORT_MAIN     0 << 2
@@ -49,6 +61,25 @@ enum {
     USB_HID_REPORT_COLLECTION_NAMED_ARRAY,
     USB_HID_REPORT_COLLECTION_USAGE_SWITCH,
     USB_HID_REPORT_COLLECTION_USAGE_MODIFIER,
+};
+
+enum {
+    BUTTON_1,
+    BUTTON_2,
+    BUTTON_3,
+    BUTTON_4,
+    BUTTON_5,
+    BUTTON_6,
+    BUTTON_7,
+    BUTTON_8,
+    BUTTON_9,
+    BUTTON_10,
+    BUTTON_11,
+    BUTTON_12,
+    BUTTON_13,
+    BUTTON_14,
+    BUTTON_15,
+    BUTTON_16,
 };
 
 // Custom struct definitions
@@ -102,6 +133,14 @@ typedef struct usb_hid_descriptor_report {
         usb_hid_report_item0_t endCollection;
     } collection1;
 } usb_hid_descriptor_report_t;
+
+typedef struct usb_hid_gamepad_data {
+    uint16_t buttons;
+    int8_t leftX;
+    int8_t leftY;
+    int8_t rightX;
+    int8_t rightY;
+} usb_hid_gamepad_data_t;
 
 #ifdef __cplusplus
 }
