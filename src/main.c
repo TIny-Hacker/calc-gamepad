@@ -5,22 +5,22 @@
  * By TIny_Hacker
  * Copyright 2024
  * License: GPL-3.0
- * Last Build: May 3, 2024
+ * Last Build: December 31, 2024
  * Version: 0.0.1
  * 
  * --------------------------------------
 **/
 
+#include "defines.h"
+
 #include <graphx.h>
 #include <keypadc.h>
 #include <usbdrvce.h>
 
-#define DEFAULT_LANGID 0x0409
-
 static const usb_string_descriptor_t product_name = {
-    .bLength = sizeof(product_name) + 12, // 12 includes length of .bString
+    .bLength = sizeof(product_name) + 18, // 18 includes length of .bString
     .bDescriptorType = USB_STRING_DESCRIPTOR,
-    .bString = L"gameCE",
+    .bString = L"CEGamepad",
 };
 
 static const usb_string_descriptor_t manufacturer = {
@@ -40,20 +40,112 @@ static const usb_string_descriptor_t langids = {
     },
 };
 
+static usb_hid_descriptor_report_t report = {
+    .usagePage = {
+        .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_USAGE_PAGE,
+        .item = 0x01, // Generic Desktop Controls
+    },
+    .usage = {
+        .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+        .item = 0x05, // Gamepad
+    },
+    .collection1 = {
+        .type = {
+            .header = sizeof(uint8_t) | USB_HID_REPORT_MAIN | USB_HID_REPORT_COLLECTION,
+            .item = USB_HID_REPORT_COLLECTION_APPLICATION,
+        },
+        .collection2 = {
+            .type = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_MAIN | USB_HID_REPORT_COLLECTION,
+                .item = USB_HID_REPORT_COLLECTION_PHYSICAL,
+            },
+            .usagePage1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_USAGE_PAGE,
+                .item = 0x09, // Button
+            },
+            .usageMin1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE_MIN,
+                .item = 0x01, // Button 1
+            },
+            .usageMax1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE_MAX,
+                .item = 0x10, // Button 16
+            },
+            .logicalMin1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_LOGICAL_MIN,
+                .item = 0x00,
+            },
+            .logicalMax1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_LOGICAL_MAX,
+                .item = 0x01,
+            },
+            .reportSize1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_REPORT_SIZE,
+                .item = 0x01,
+            },
+            .reportCount1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_REPORT_COUNT,
+                .item = 0x10,
+            },
+            .input1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_MAIN | USB_HID_REPORT_INPUT,
+                .item = 0x02, // Data, Var, Abs
+            },
+            .usagePage2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_USAGE_PAGE,
+                .item = 0x01, // Generic Desktop Controls
+            },
+            .usage1 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+                .item = 0x30, // X
+            },
+            .usage2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+                .item = 0x31, // Y
+            },
+            .usage3 = { // Might not use this
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+                .item = 0x32, // Z
+            },
+            .usage4 = { // Also might not use this
+                .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
+                .item = 0x33, // Rx
+            },
+            .logicalMin2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_LOGICAL_MIN,
+                .item = 0x81, // -127
+            },
+            .logicalMax2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_LOGICAL_MAX,
+                .item = 0x7F, // 127
+            },
+            .reportSize2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_REPORT_SIZE,
+                .item = 0x08,
+            },
+            .reportCount2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_REPORT_COUNT,
+                .item = 0x04,
+            },
+            .input2 = {
+                .header = sizeof(uint8_t) | USB_HID_REPORT_MAIN | USB_HID_REPORT_INPUT,
+                .item = 0x02, // Data, Var, Abs
+            },
+            .endCollection = {
+                .header = USB_HID_REPORT_END_COLLECTION,
+            },
+        },
+        .endCollection = {
+            .header = USB_HID_REPORT_END_COLLECTION,
+        },
+    },
+};
+
 static struct {
     usb_configuration_descriptor_t configuration;
     usb_interface_descriptor_t interface;
-    struct usb_hid_descriptor_t {
-        uint8_t bLength;
-        uint8_t bDescriptorType;
-        uint16_t bcdHID;
-        uint8_t bCountryCode;
-        uint8_t bNumDescriptors;
-        uint8_t bDescriptorType2;
-        uint16_t wDescriptorLength;
-    } hid;
-    usb_endpoint_descriptor_t endpointIN;
-    usb_endpoint_descriptor_t endpointOUT;
+    usb_hid_descriptor_t hid;
+    usb_endpoint_descriptor_t endpoint;
 } configuration1 = {
     .configuration = {
         .bLength = sizeof(usb_configuration_descriptor_t),
@@ -62,7 +154,7 @@ static struct {
         .bNumInterfaces = 1,
         .bConfigurationValue = 1,
         .iConfiguration = 0,
-        .bmAttributes = USB_BUS_POWERED | USB_NO_REMOTE_WAKEUP,
+        .bmAttributes =  (1 << 7) | USB_BUS_POWERED | USB_NO_REMOTE_WAKEUP,
         .bMaxPower = 500 / 2,
     },
     .interface = {
@@ -70,35 +162,27 @@ static struct {
         .bDescriptorType = USB_INTERFACE_DESCRIPTOR,
         .bInterfaceNumber = 0,
         .bAlternateSetting = 0,
-        .bNumEndpoints = 2,
+        .bNumEndpoints = 1,
         .bInterfaceClass = USB_HID_CLASS,
         .bInterfaceSubClass = 0x00, // No subclass
         .bInterfaceProtocol = 0x00,
         .iInterface = 0,
     },
     .hid = {
-        .bLength = sizeof(struct usb_hid_descriptor_t),
+        .bLength = sizeof(usb_hid_descriptor_t),
         .bDescriptorType = 0x21, // HID
         .bcdHID = 0x0110,
         .bCountryCode = 0x00, // Not supported
         .bNumDescriptors = 1,
         .bDescriptorType2 = 0x22, // HID Report
-        .wDescriptorLength = 119,
+        .wDescriptorLength = sizeof(report),
     },
-    .endpointIN = {
+    .endpoint = {
         .bLength = sizeof(usb_endpoint_descriptor_t),
         .bDescriptorType = USB_ENDPOINT_DESCRIPTOR,
-        .bEndpointAddress = 0x81, // IN
-        .bmAttributes = 0x03,
-        .wMaxPacketSize = 0x40,
-        .bInterval = 10,
-    },
-    .endpointOUT = {
-        .bLength = sizeof(usb_endpoint_descriptor_t),
-        .bDescriptorType = USB_ENDPOINT_DESCRIPTOR,
-        .bEndpointAddress = 0x01, // OUT
-        .bmAttributes = 0x03,
-        .wMaxPacketSize = 0x40,
+        .bEndpointAddress = USB_DEVICE_TO_HOST | 1, // OUT
+        .bmAttributes = USB_INTERRUPT_TRANSFER,
+        .wMaxPacketSize = 0x0008,
         .bInterval = 10,
     },
 };
@@ -110,7 +194,7 @@ static const usb_configuration_descriptor_t *configurations[] = {
 static const usb_device_descriptor_t device = {
     .bLength = sizeof(usb_device_descriptor_t),
     .bDescriptorType = USB_DEVICE_DESCRIPTOR,
-    .bcdUSB = 0x0110,
+    .bcdUSB = 0x0200,
     .bDeviceClass = 0x00, // Device
     .bDeviceSubClass = 0,
     .bDeviceProtocol = 0,
@@ -135,12 +219,22 @@ static const usb_standard_descriptors_t standard = {
 static usb_error_t handleUsbEvent(usb_event_t event, void *eventData, usb_callback_data_t *callbackData) {
     usb_error_t error = USB_SUCCESS;
 
+    usb_device_t activeDevice = usb_FindDevice(NULL, NULL, USB_SKIP_HUBS);
+
     if (event == USB_DEFAULT_SETUP_EVENT) {
-        if (((usb_control_setup_t *)eventData)->bRequest == USB_GET_DESCRIPTOR_REQUEST &&
+        if (((usb_control_setup_t *)eventData)->bmRequestType == USB_DEVICE_TO_HOST &&
+            ((usb_control_setup_t *)eventData)->bRequest == USB_GET_DESCRIPTOR_REQUEST &&
             ((usb_control_setup_t *)eventData)->wValue == 0x0200 &&
             ((usb_control_setup_t *)eventData)->wLength == sizeof(configuration1)) {
 
-            usb_Transfer(usb_GetDeviceEndpoint(usb_FindDevice(NULL, NULL, USB_SKIP_HUBS), 0), &configuration1, sizeof(configuration1), 5, NULL);
+            usb_Transfer(usb_GetDeviceEndpoint(activeDevice, 0), &configuration1, sizeof(configuration1), 5, NULL);
+            error = USB_IGNORE;
+        } else if (((usb_control_setup_t *)eventData)->bmRequestType == (USB_DEVICE_TO_HOST | USB_RECIPIENT_INTERFACE) &&
+            ((usb_control_setup_t *)eventData)->bRequest == USB_GET_DESCRIPTOR_REQUEST &&
+            ((usb_control_setup_t *)eventData)->wValue == 0x2200 &&
+            ((usb_control_setup_t *)eventData)->wLength == sizeof(report) + 0x40) {
+
+            usb_Transfer(usb_GetDeviceEndpoint(activeDevice, 0), &report, sizeof(report), 5, NULL);
             error = USB_IGNORE;
         }
     }
