@@ -3,7 +3,7 @@
  * 
  * TI-84+ CE Gamepad Studio Source Code - defines.h
  * By TIny_Hacker
- * Copyright 2024
+ * Copyright 2024 - 2025
  * License: GPL-3.0
  * 
  * --------------------------------------
@@ -30,11 +30,13 @@ extern "C" {
  */
 #define toggle(n, bit) (n ^= (1U << bit))
 
-#define DEFAULT_LANGID 0x0409
+#define JOYSTICK_SENSITIVITY            8
 
-#define USB_HID_REPORT_MAIN     0 << 2
-#define USB_HID_REPORT_GLOBAL   1 << 2
-#define USB_HID_REPORT_LOCAL    2 << 2
+#define DEFAULT_LANGID                  0x0409
+
+#define USB_HID_REPORT_MAIN             0 << 2
+#define USB_HID_REPORT_GLOBAL           1 << 2
+#define USB_HID_REPORT_LOCAL            2 << 2
 
 #define USB_HID_REPORT_USAGE            0x00 << 4
 #define USB_HID_REPORT_USAGE_PAGE       0x00 << 4

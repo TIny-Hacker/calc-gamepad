@@ -3,9 +3,9 @@
  * 
  * TI-84+ CE Gamepad - main.c
  * By TIny_Hacker
- * Copyright 2024
+ * Copyright 2024 - 2025
  * License: GPL-3.0
- * Last Build: December 31, 2024
+ * Last Build: January 1, 2025
  * Version: 0.0.1
  * 
  * --------------------------------------
@@ -104,13 +104,13 @@ static usb_hid_descriptor_report_t report = {
                 .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
                 .item = 0x31, // Y
             },
-            .usage3 = { // Might not use this
+            .usage3 = {
                 .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
                 .item = 0x32, // Z
             },
-            .usage4 = { // Also might not use this
+            .usage4 = {
                 .header = sizeof(uint8_t) | USB_HID_REPORT_LOCAL | USB_HID_REPORT_USAGE,
-                .item = 0x33, // Rx
+                .item = 0x33, // Rz
             },
             .logicalMin2 = {
                 .header = sizeof(uint8_t) | USB_HID_REPORT_GLOBAL | USB_HID_REPORT_LOGICAL_MIN,
@@ -253,13 +253,13 @@ static usb_error_t handleUsbEvent(usb_event_t event, void *eventData, usb_callba
 
 static bool updateJoystickAxis(kb_lkey_t dec, kb_lkey_t inc, int8_t *value) {
     if (kb_IsDown(dec)) {
-        if (*value >= 0) {
-            *value = -127;
+        if (*value > -127 + JOYSTICK_SENSITIVITY) {
+            *value -= JOYSTICK_SENSITIVITY;
             return true;
         }
     } else if (kb_IsDown(inc)) {
-        if (*value <= 0) {
-            *value = 127;
+        if (*value < 127 - JOYSTICK_SENSITIVITY) {
+            *value += JOYSTICK_SENSITIVITY;
             return true;
         }
     } else if (*value) {
@@ -321,6 +321,16 @@ int main(void) {
                 // Other
                 needUpdate |= updateButton(kb_KeyDel, BUTTON_9);
                 needUpdate |= updateButton(kb_KeyStat, BUTTON_10);
+
+                // Joystick buttons
+                needUpdate |= updateButton(kb_Key5, BUTTON_11);
+                needUpdate |= updateButton(kb_KeyVars, BUTTON_12);
+
+                // Hat switch
+                needUpdate |= updateButton(kb_KeyCos, BUTTON_13);
+                needUpdate |= updateButton(kb_KeyLParen, BUTTON_14);
+                needUpdate |= updateButton(kb_KeyComma, BUTTON_15);
+                needUpdate |= updateButton(kb_KeyRParen, BUTTON_16);
             }
         }
     }

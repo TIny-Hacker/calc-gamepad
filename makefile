@@ -2,7 +2,7 @@
 #
 # TI-84+ CE Gamepad - makefile
 # By TIny_Hacker
-# Copyright 2024
+# Copyright 2024 - 2025
 # License: GPL-3.0
 #
 #--------------------------------------
